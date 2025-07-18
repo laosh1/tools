@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>四川月相查询工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+      font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Arial', sans-serif;
+      color: #232526;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* 夜空星点 */
+    body::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background: url('data:image/svg+xml;utf8,<svg width="100%25" height="100%25" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="20" r="1.2" fill="white" opacity="0.7"/><circle cx="80" cy="60" r="0.8" fill="white" opacity="0.5"/><circle cx="200" cy="120" r="1.5" fill="white" opacity="0.8"/><circle cx="300" cy="40" r="1" fill="white" opacity="0.6"/><circle cx="400" cy="200" r="1.1" fill="white" opacity="0.7"/><circle cx="600" cy="100" r="0.7" fill="white" opacity="0.4"/><circle cx="700" cy="300" r="1.3" fill="white" opacity="0.6"/></svg>');
+      z-index: 0;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      padding: 40px;
+      max-width: 650px;
+      width: 100%;
+      backdrop-filter: blur(10px);
+      z-index: 1;
+      color: #232526;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 2.2rem;
+      color: #4e54c8;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    
+    .header p {
+      color: #6c7a89;
+      font-size: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: #34495e;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    select, input[type="date"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e6ed;
+      border-radius: 12px;
+      background: #fff;
+      color: #2c3e50;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    select:focus, input[type="date"]:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    select:disabled {
+      background: #f8f9fa;
+      color: #95a5a6;
+      cursor: not-allowed;
+    }
+    
+    button {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .result {
+      margin-top: 30px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      display: none;
+      animation: slideIn 0.5s ease;
+    }
+    
+    .result.show {
+      display: block;
+    }
+    
+    .location-info {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .location-info h3 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
+    
+    .location-info p {
+      color: #7f8c8d;
+      margin-bottom: 5px;
+    }
+    
+    .moon-phases {
+      display: flex;
+      flex-direction: row;
+      gap: 18px;
+      border: 1px solid #e0e6ed;
+      padding: 14px 8px;
+      background: #f8f9fa;
+      margin-bottom: 0;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #b0b3b8 #f8f9fa;
+    }
+    .moon-day {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 14px;
+      padding: 15px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+      max-width: 160px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 2px solid transparent;
+      color: #232526;
+      font-size: 1rem;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 10px; }
+      .moon-phases {
+        gap: 8px;
+        padding: 6px 2px;
+      }
+      .moon-day {
+        min-width: 90px;
+        max-width: 120px;
+        padding: 8px 2px;
+        font-size: 0.92rem;
+      }
+      .moon-emoji { font-size: 1.5rem; }
+      .moon-date { font-size: 0.92rem; }
+      .moon-phase { font-size: 0.8rem; }
+    }
+    
+    .moon-day:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(142, 148, 251, 0.13);
+    }
+    
+    .moon-day.selected {
+      border: 2.5px solid #4e54c8;
+      background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+      color: #232526;
+    }
+    
+    .moon-emoji {
+      font-size: 2.2rem;
+      min-width: 40px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .moon-info {
+      flex: 1;
+      text-align: center;
+    }
+    
+    .moon-date {
+      font-weight: 600;
+      color: #4e54c8;
+      font-size: 1rem;
+    }
+    
+    .moon-phase {
+      color: #6c7a89;
+      font-size: 0.95rem;
+      margin-top: 2px;
+    }
+    
+    .today {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+    
+    .today .moon-date,
+    .today .moon-phase {
+      color: #fff;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #7f8c8d;
+    }
+    
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 20px;
+      border: 1px solid #fcc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌙 四川月相查询</h1>
+      <p>今天月亮缺了点儿吗？</p>
+    </div>
+    
+    <form id="moonForm">
+      <div class="form-group">
+        <label for="city">选择城市</label>
+        <select id="city" required>
+          <option value="">请选择城市</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="district">选择区县</label>
+        <select id="district" required disabled>
+          <option value="">请先选择城市</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="date">选择日期</label>
+        <input type="date" id="date" required max="">
+      </div>
+      
+      <button type="submit">🔍 查询月相</button>
+    </form>
+    
+    <div id="result" class="result">
+      <div class="location-info">
+        <h3>📍 查询位置</h3>
+        <p id="locationText"></p>
+        <p id="dateText"></p>
+      </div>
+      <div class="moon-phases" id="moonPhases">
+        <!-- 月相信息将在这里显示 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 四川城市和区县数据
+    const sichuanData = {
+      "成都市": ["锦江区", "青羊区", "金牛区", "武侯区", "成华区", "龙泉驿区", "青白江区", "新都区", "温江区", "双流区", "郫都区", "新津区", "金堂县", "大邑县", "蒲江县", "都江堰市", "彭州市", "邛崃市", "崇州市", "简阳市"],
+      "绵阳市": ["涪城区", "游仙区", "安州区", "三台县", "盐亭县", "梓潼县", "北川羌族自治县", "平武县", "江油市"],
+      "德阳市": ["旌阳区", "罗江区", "中江县", "广汉市", "什邡市", "绵竹市"],
+      "自贡市": ["自流井区", "贡井区", "大安区", "沿滩区", "荣县", "富顺县"],
+      "攀枝花市": ["东区", "西区", "仁和区", "米易县", "盐边县"],
+      "泸州市": ["江阳区", "纳溪区", "龙马潭区", "泸县", "合江县", "叙永县", "古蔺县"],
+      "内江市": ["市中区", "东兴区", "威远县", "资中县", "隆昌市"],
+      "乐山市": ["市中区", "沙湾区", "五通桥区", "金口河区", "犍为县", "井研县", "夹江县", "沐川县", "峨边彝族自治县", "马边彝族自治县", "峨眉山市"],
+      "南充市": ["顺庆区", "高坪区", "嘉陵区", "南部县", "营山县", "蓬安县", "仪陇县", "西充县", "阆中市"],
+      "宜宾市": ["翠屏区", "南溪区", "叙州区", "江安县", "长宁县", "高县", "珙县", "筠连县", "兴文县", "屏山县"],
+      "广安市": ["广安区", "前锋区", "岳池县", "武胜县", "邻水县", "华蓥市"],
+      "达州市": ["通川区", "达川区", "宣汉县", "开江县", "大竹县", "渠县", "万源市"],
+      "雅安市": ["雨城区", "名山区", "荥经县", "汉源县", "石棉县", "天全县", "芦山县", "宝兴县"],
+      "巴中市": ["巴州区", "恩阳区", "通江县", "南江县", "平昌县"],
+      "资阳市": ["雁江区", "安岳县", "乐至县"],
+      "阿坝藏族羌族自治州": ["马尔康市", "汶川县", "理县", "茂县", "松潘县", "九寨沟县", "金川县", "小金县", "黑水县", "壤塘县", "阿坝县", "若尔盖县", "红原县"],
+      "甘孜藏族自治州": ["康定市", "泸定县", "丹巴县", "九龙县", "雅江县", "道孚县", "炉霍县", "甘孜县", "新龙县", "德格县", "白玉县", "石渠县", "色达县", "理塘县", "巴塘县", "乡城县", "稻城县", "得荣县"],
+      "凉山彝族自治州": ["西昌市", "木里藏族自治县", "盐源县", "德昌县", "会理市", "会东县", "宁南县", "普格县", "布拖县", "金阳县", "昭觉县", "喜德县", "冕宁县", "越西县", "甘洛县", "美姑县", "雷波县"]
+    };
+
+    // DOM 元素
+    const citySelect = document.getElementById('city');
+    const districtSelect = document.getElementById('district');
+    const dateInput = document.getElementById('date');
+    const resultDiv = document.getElementById('result');
+    const locationText = document.getElementById('locationText');
+    const dateText = document.getElementById('dateText');
+    const moonPhasesDiv = document.getElementById('moonPhases');
+
+    // 设置最大日期为今天
+    dateInput.max = new Date().toISOString().split('T')[0];
+    dateInput.value = new Date().toISOString().split('T')[0];
+
+    // 初始化城市选择
+    function initCitySelect() {
+      citySelect.innerHTML = '<option value="">请选择城市</option>';
+      Object.keys(sichuanData).forEach(city => {
+        const opt = document.createElement('option');
+        opt.value = city;
+        opt.textContent = city;
+        citySelect.appendChild(opt);
+      });
+    }
+
+    // 城市选择事件
+    citySelect.addEventListener('change', function() {
+      const city = this.value;
+      districtSelect.innerHTML = '<option value="">请选择区县</option>';
+      districtSelect.disabled = true;
+      
+      if (city && sichuanData[city]) {
+        sichuanData[city].forEach(district => {
+          const opt = document.createElement('option');
+          opt.value = district;
+          opt.textContent = district;
+          districtSelect.appendChild(opt);
+        });
+        districtSelect.disabled = false;
+      }
+    });
+
+    // 月相计算函数
+    function getMoonPhase(date) {
+      let year = date.getFullYear();
+      let month = date.getMonth() + 1;
+      const day = date.getDate();
+      
+      let c = 0, e = 0, jd = 0, b = 0;
+      
+      if (month < 3) {
+        year--;
+        month += 12;
+      }
+      
+      ++month;
+      c = 365.25 * year;
+      e = 30.6 * month;
+      jd = c + e + day - 694039.09;
+      jd /= 29.5305882;
+      b = parseInt(jd);
+      jd -= b;
+      b = Math.round(jd * 8);
+      
+      if (b >= 8) b = 0;
+      
+      return b;
+    }
+
+    // 月相信息
+    const moonPhases = [
+      { name: "新月", emoji: "🌑", description: "月亮不可见" },
+      { name: "峨眉月", emoji: "🌒", description: "细弯月" },
+      { name: "上弦月", emoji: "🌓", description: "半圆月" },
+      { name: "盈凸月", emoji: "🌔", description: "凸月" },
+      { name: "满月", emoji: "🌕", description: "圆月" },
+      { name: "亏凸月", emoji: "🌖", description: "凸月" },
+      { name: "下弦月", emoji: "🌗", description: "半圆月" },
+      { name: "残月", emoji: "🌘", description: "细弯月" }
+    ];
+
+    function getPhaseInfo(phaseNum) {
+      return moonPhases[phaseNum];
+    }
+
+    // 查询月相
+    document.getElementById('moonForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const city = citySelect.value;
+      const district = districtSelect.value;
+      const dateStr = dateInput.value;
+      
+      if (!city || !district || !dateStr) {
+        alert('请完整选择所有选项');
+        return;
+      }
+
+      // 显示结果区域
+      resultDiv.classList.add('show');
+      
+      // 更新位置信息
+      locationText.textContent = `四川省 ${city} ${district}`;
+      dateText.textContent = `查询日期：${dateStr}`;
+      
+      // 计算月相
+      const baseDate = new Date(dateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      moonPhasesDiv.innerHTML = '';
+      
+      for (let offset = -3; offset <= 3; offset++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + offset);
+        const phaseNum = getMoonPhase(d);
+        const phase = getPhaseInfo(phaseNum);
+        
+        // 查询日期高亮
+        const isSelected = d.getTime() === baseDate.getTime();
+        const dayClass = isSelected ? 'moon-day selected' : 'moon-day';
+        
+        const dayDiv = document.createElement('div');
+        dayDiv.className = dayClass;
+        dayDiv.innerHTML = `
+          <div class="moon-emoji">${phase.emoji}</div>
+          <div class="moon-info">
+            <div class="moon-date">${d.toLocaleDateString('zh-CN')} ${isSelected ? '(查询日)' : ''}</div>
+            <div class="moon-phase">${phase.name} - ${phase.description}</div>
+          </div>
+        `;
+        
+        moonPhasesDiv.appendChild(dayDiv);
+      }
+      
+      // 滚动到结果区域
+      resultDiv.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // 初始化
+    initCitySelect();
+    
+  </script>
+</body>
+</html>
